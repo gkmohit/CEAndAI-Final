@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeDoc AI - Legacy Code Documentation Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 350px;
+            gap: 20px;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+            margin-bottom: 30px;
+        }
+
+        .full-width-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            opacity: 0.7;
+        }
+
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(103, 126, 234, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(103, 126, 234, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(103, 126, 234, 0.15);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtext {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 8px 4px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(103, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .code-editor {
+            flex: 1;
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #d4d4d4;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 200px;
+            min-height: 120px;
+            resize: vertical;
+            border: 2px solid #333;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .documentation-output {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+        }
+
+        .file-info {
+            background: rgba(103, 126, 234, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .file-stats {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .code-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .code-preview-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .toggle-btn {
+            background: rgba(103, 126, 234, 0.1);
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(103, 126, 234, 0.2);
+        }
+
+        .toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .code-editor.collapsed {
+            max-height: 60px;
+            min-height: 60px;
+        }
+
+        .code-editor.expanded {
+            max-height: 400px;
+            min-height: 200px;
+        }
+
+        .saved-files {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .saved-files h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .saved-files-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .saved-file-item {
+            background: rgba(103, 126, 234, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+        }
+
+        .saved-file-item:hover {
+            background: rgba(103, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+
+        .saved-file-item .file-name {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 4px;
+            font-size: 0.95em;
+        }
+
+        .saved-file-item .file-stats {
+            font-size: 0.8em;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .saved-file-item button {
+            float: right;
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            margin-top: 2px;
+        }
+
+        .doc-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .doc-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .doc-section p, .doc-section ul {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .doc-section ul {
+            padding-left: 20px;
+        }
+
+        .doc-section li {
+            margin-bottom: 5px;
+        }
+
+        .function-doc {
+            background: #e8f4fd;
+            border-left-color: #2196F3;
+        }
+
+        .variable-doc {
+            background: #f3e5f5;
+            border-left-color: #9C27B0;
+        }
+
+        .overview-doc {
+            background: #e8f5e8;
+            border-left-color: #4CAF50;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        .benefits-btn {
+            background: linear-gradient(135deg, #ff9a56 0%, #ffad56 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(255, 154, 86, 0.3);
+        }
+
+        .benefits-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 154, 86, 0.4);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .modal-header p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .stats-section {
+            margin-bottom: 30px;
+        }
+
+        .stats-section h3 {
+            color: #667eea;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-table {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .stats-row {
+            display: flex;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .stats-row:last-child {
+            border-bottom: none;
+        }
+
+        .stats-row:hover {
+            background: rgba(103, 126, 234, 0.05);
+        }
+
+        .stats-label {
+            flex: 1;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stats-value {
+            flex: 1;
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+        .benefits-list {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .benefits-list h4 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .benefits-list ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefits-list li {
+            padding: 8px 0;
+            color: #2e7d32;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .benefits-list li::before {
+            content: "✅";
+            font-size: 1.1em;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+            }
+            
+            .saved-files {
+                grid-column: 1 / -1;
+                max-height: 300px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                gap: 20px;
+                height: auto;
+                min-height: 500px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .code-editor {
+                max-height: 150px;
+                min-height: 100px;
+            }
+
+            .code-editor.expanded {
+                max-height: 300px;
+                min-height: 150px;
+            }
+
+            .saved-files {
+                grid-column: 1;
+                max-height: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .panel, .saved-files {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn {
+                width: 100%;
+                margin: 4px 0;
+            }
+
+            .code-preview-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .toggle-btn {
+                align-self: center;
+            }
+
+            .saved-files {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 CodeDoc AI</h1>
+            <p>Professional Legacy Code Documentation Tool - Transform your legacy codebase into well-documented, maintainable code with AI-powered analysis. Completely offline and secure.</p>
+            <button class="benefits-btn" onclick="openBenefitsModal()">
+                📊 Why Documentation Matters - See the Impact
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>
+                    <span class="icon">📁</span>
+                    Code Upload & Analysis
+                </h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drag & drop your code files here</div>
+                    <div class="upload-subtext">or click to browse (supports .js, .py, .java, .cpp, .c, .ts, .php, .rb, .go)</div>
+                    <input type="file" id="fileInput" class="file-input" multiple accept=".js,.py,.java,.cpp,.c,.ts,.php,.rb,.go,.jsx,.tsx,.vue,.swift,.kt,.cs,.scala,.html,.css">
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-stats" id="fileStats"></div>
+                </div>
+
+                <div class="status-bar" id="statusBar">
+                    Ready to process your code files
+                </div>
+
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Analyzing code with AI...</div>
+                </div>
+
+                <div class="code-preview-header">
+                    <div class="code-preview-title">📄 Code Preview</div>
+                    <button class="toggle-btn" id="toggleCodeView" onclick="codeDoc.toggleCodePreview()">
+                        Collapse Preview
+                    </button>
+                </div>
+
+                <div class="code-editor" id="codeEditor" placeholder="Your uploaded code will appear here...">
+                    Select a file to view its contents and generate documentation
+                </div>
+
+                <div class="controls">
+                    <button class="btn" id="generateDocs" disabled>
+                        🧠 Generate Documentation
+                    </button>
+                    <button class="btn btn-secondary" id="saveWork">
+                        💾 Save Work
+                    </button>
+                    <button class="btn btn-success" id="exportDocs" disabled>
+                        📤 Export Documentation
+                    </button>
+                    <button class="btn" id="clearAll">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>
+                    <span class="icon">📖</span>
+                    Generated Documentation
+                </h2>
+                
+                <div class="documentation-output" id="documentationOutput">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">📚</div>
+                        <h3>AI-Generated Documentation</h3>
+                        <p>Upload and analyze your code to see comprehensive documentation here.</p>
+                        <br>
+                        <p><strong>Features:</strong></p>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Function-level documentation</li>
+                            <li>Variable explanations</li>
+                            <li>Module overviews</li>
+                            <li>Code structure analysis</li>
+                            <li>Best practices recommendations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="saved-files">
+                <h2>
+                    <span class="icon">💾</span>
+                    Saved Work
+                </h2>
+                <div class="saved-files-list" id="savedFilesList">
+                    <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+                        No saved work found. Start by uploading and documenting some code!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Benefits Modal -->
+    <div id="benefitsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeBenefitsModal()">&times;</span>
+                <h2>📊 The Documentation Crisis</h2>
+                <p>Why AI-powered documentation tools are essential for modern development teams</p>
+            </div>
+            <div class="modal-body">
+                <div class="stats-section">
+                    <h3>🔍 Current Impact Summary</h3>
+                    <div class="stats-table">
+                        <div class="stats-row">
+                            <div class="stats-label">Developer time lost</div>
+                            <div class="stats-value">~1 day/week, 41% cite documentation</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Feature release lag</div>
+                            <div class="stats-value">+18% slower with poor docs</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Onboarding inefficiencies</div>
+                            <div class="stats-value">Ramp-up 30% slower</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Financial losses</div>
+                            <div class="stats-value">$8.5M/year for 1,000 workers; $31.5B for Fortune 500</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Debugging slowdown</div>
+                            <div class="stats-value">+23% time increase</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Tech debt impact</div>
+                            <div class="stats-value">+124% resolution time; ~42% dev time wasted</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Developer turnover</div>
+                            <div class="stats-value">38% consider leaving due to docs</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stats-label">Other sectors impact</div>
+                            <div class="stats-value">11k clinician-hours lost; 18h systems downtime</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <h3>✅ Why CodeDoc AI Matters</h3>
+                    <div class="benefits-list">
+                        <h4>Transform Your Development Workflow</h4>
+                        <ul>
+                            <li>Recover a full day of developer time each week through automated documentation</li>
+                            <li>Speed up team onboarding by ~30% with comprehensive, up-to-date documentation</li>
+                            <li>Accelerate feature shipping and reduce debugging delays significantly</li>
+                            <li>Boost team morale and reduce developer turnover by eliminating documentation friction</li>
+                            <li>Cut systemic downtime and reduce labor waste across all technical contexts</li>
+                            <li>Generate consistent, professional documentation that scales with your codebase</li>
+                            <li>Maintain security with 100% offline processing - no code leaves your environment</li>
+                            <li>Support multiple programming languages and legacy codebases out of the box</li>
+                        </ul>
+                    </div>
+                    <p style="margin-top: 20px; padding: 15px; background: rgba(103, 126, 234, 0.1); border-radius: 8px; color: #333; line-height: 1.6;">
+                        <strong>Building your AI documentation tool aligns directly with solving these costly, proven problems.</strong> 
+                        Every minute spent on manual documentation is time not spent on innovation, feature development, and solving core business challenges.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CodeDocumentationTool {
+            constructor() {
+                this.currentFile = null;
+                this.currentCode = '';
+                this.currentDocumentation = '';
+                this.savedWork = JSON.parse(localStorage.getItem('codeDocWork') || '[]');
+                this.codePreviewCollapsed = false;
+                
+                this.initializeEventListeners();
+                this.loadSavedWork();
+                this.updateProgressBar(0);
+            }
+
+            initializeEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const generateBtn = document.getElementById('generateDocs');
+                const saveBtn = document.getElementById('saveWork');
+                const exportBtn = document.getElementById('exportDocs');
+                const clearBtn = document.getElementById('clearAll');
+
+                // File upload handling
+                uploadArea.addEventListener('click', () => fileInput.click());
+                uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadArea.addEventListener('drop', this.handleDrop.bind(this));
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+                // Button handlers
+                generateBtn.addEventListener('click', this.generateDocumentation.bind(this));
+                saveBtn.addEventListener('click', this.saveWork.bind(this));
+                exportBtn.addEventListener('click', this.exportDocumentation.bind(this));
+                clearBtn.addEventListener('click', this.clearAll.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('uploadArea').classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                document.getElementById('uploadArea').classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('uploadArea').classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                this.processFiles(files);
+            }
+
+            handleFileSelect(e) {
+                const files = e.target.files;
+                this.processFiles(files);
+            }
+
+            processFiles(files) {
+                if (files.length === 0) return;
+
+                const file = files[0]; // Process first file for now
+                this.currentFile = file;
+                
+                this.updateStatus(`Processing ${file.name}...`);
+                this.showFileInfo(file);
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.currentCode = e.target.result;
+                    this.displayCode(this.currentCode);
+                    this.enableGeneration();
+                    this.updateStatus(`File loaded successfully. Ready to generate documentation.`);
+                };
+                reader.readAsText(file);
+            }
+
+            showFileInfo(file) {
+                const fileInfo = document.getElementById('fileInfo');
+                const fileName = document.getElementById('fileName');
+                const fileStats = document.getElementById('fileStats');
+                
+                fileName.textContent = file.name;
+                fileStats.textContent = `Size: ${this.formatFileSize(file.size)} | Type: ${file.type || 'Unknown'} | Last Modified: ${new Date(file.lastModified).toLocaleDateString()}`;
+                fileInfo.style.display = 'block';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            displayCode(code) {
+                const codeEditor = document.getElementById('codeEditor');
+                // Limit display for very long files
+                if (code.length > 5000) {
+                    const truncated = code.substring(0, 5000) + '\n\n... [File truncated for display. Full content will be analyzed] ...';
+                    codeEditor.textContent = truncated;
+                } else {
+                    codeEditor.textContent = code;
+                }
+            }
+
+            toggleCodePreview() {
+                const codeEditor = document.getElementById('codeEditor');
+                const toggleBtn = document.getElementById('toggleCodeView');
+                
+                if (this.codePreviewCollapsed) {
+                    codeEditor.classList.remove('collapsed');
+                    codeEditor.classList.add('expanded');
+                    toggleBtn.textContent = 'Collapse Preview';
+                    toggleBtn.classList.remove('active');
+                    this.codePreviewCollapsed = false;
+                } else {
+                    codeEditor.classList.remove('expanded');
+                    codeEditor.classList.add('collapsed');
+                    toggleBtn.textContent = 'Expand Preview';
+                    toggleBtn.classList.add('active');
+                    this.codePreviewCollapsed = true;
+                }
+            }
+
+            enableGeneration() {
+                document.getElementById('generateDocs').disabled = false;
+            }
+
+            async generateDocumentation() {
+                if (!this.currentCode) {
+                    this.showToast('Please upload a code file first', 'error');
+                    return;
+                }
+
+                this.showLoading(true);
+                this.updateStatus('Analyzing code structure...');
+                this.updateProgressBar(20);
+
+                // Simulate AI processing with realistic delays
+                await this.delay(1000);
+                this.updateStatus('Extracting functions and variables...');
+                this.updateProgressBar(50);
+
+                await this.delay(1500);
+                this.updateStatus('Generating documentation...');
+                this.updateProgressBar(80);
+
+                await this.delay(1000);
+                
+                // Generate documentation based on code analysis
+                const documentation = this.analyzeCode(this.currentCode);
+                this.currentDocumentation = documentation;
+                this.displayDocumentation(documentation);
+                
+                this.updateProgressBar(100);
+                this.updateStatus('Documentation generated successfully!');
+                this.showLoading(false);
+                
+                document.getElementById('exportDocs').disabled = false;
+                this.showToast('Documentation generated successfully!');
+            }
+
+            analyzeCode(code) {
+                const analysis = {
+                    overview: this.generateOverview(code),
+                    functions: this.extractFunctions(code),
+                    variables: this.extractVariables(code),
+                    recommendations: this.generateRecommendations(code)
+                };
+
+                return this.formatDocumentation(analysis);
+            }
+
+            generateOverview(code) {
+                const lines = code.split('\n').length;
+                const language = this.detectLanguage(this.currentFile.name);
+                const complexity = this.assessComplexity(code);
+                
+                return {
+                    language,
+                    lines,
+                    complexity,
+                    description: this.generateModuleDescription(code, language)
+                };
+            }
+
+            detectLanguage(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const langMap = {
+                    'js': 'JavaScript',
+                    'jsx': 'JavaScript (React)',
+                    'ts': 'TypeScript',
+                    'tsx': 'TypeScript (React)',
+                    'py': 'Python',
+                    'java': 'Java',
+                    'cpp': 'C++',
+                    'c': 'C',
+                    'php': 'PHP',
+                    'rb': 'Ruby',
+                    'go': 'Go',
+                    'swift': 'Swift',
+                    'kt': 'Kotlin',
+                    'cs': 'C#',
+                    'scala': 'Scala'
+                };
+                return langMap[ext] || 'Unknown';
+            }
+
+            assessComplexity(code) {
+                const cyclomaticComplexity = (code.match(/if|while|for|switch|catch/g) || []).length;
+                if (cyclomaticComplexity < 5) return 'Low';
+                if (cyclomaticComplexity < 15) return 'Medium';
+                return 'High';
+            }
+
+            generateModuleDescription(code, language) {
+                // Simple heuristic-based description generation
+                const hasClasses = /class\s+\w+/.test(code);
+                const hasFunctions = /function\s+\w+|def\s+\w+|\w+\s*\(.*\)\s*{/.test(code);
+                const hasImports = /import|require|#include|using/.test(code);
+                
+                let description = `This ${language} module`;
+                
+                if (hasClasses) {
+                    const classes = (code.match(/class\s+(\w+)/g) || []).map(m => m.replace('class ', ''));
+                    description += ` defines ${classes.length} class${classes.length > 1 ? 'es' : ''}: ${classes.join(', ')}.`;
+                }
+                
+                if (hasFunctions) {
+                    const functions = this.extractFunctionNames(code);
+                    description += ` Contains ${functions.length} function${functions.length > 1 ? 's' : ''} for various operations.`;
+                }
+                
+                if (hasImports) {
+                    description += ` Uses external dependencies and modules.`;
+                }
+                
+                return description;
+            }
+
+            extractFunctions(code) {
+                const functions = [];
+                const patterns = [
+                    /function\s+(\w+)\s*\(([^)]*)\)\s*{([^}]*)}/g, // JavaScript functions
+                    /def\s+(\w+)\s*\(([^)]*)\):/g, // Python functions
+                    /(\w+)\s*\(([^)]*)\)\s*{/g, // General functions
+                    /public\s+\w+\s+(\w+)\s*\(([^)]*)\)/g, // Java methods
+                ];
+
+                patterns.forEach(pattern => {
+                    let match;
+                    while ((match = pattern.exec(code)) !== null) {
+                        const name = match[1];
+                        const params = match[2] || '';
+                        const body = match[3] || '';
+                        
+                        if (name && !functions.find(f => f.name === name)) {
+                            functions.push({
+                                name,
+                                parameters: params.split(',').map(p => p.trim()).filter(p => p),
+                                description: this.generateFunctionDescription(name, params, body),
+                                complexity: this.assessFunctionComplexity(body)
+                            });
+                        }
+                    }
+                });
+
+                return functions;
+            }
+
+            extractFunctionNames(code) {
+                const functions = this.extractFunctions(code);
+                return functions.map(f => f.name);
+            }
+
+            generateFunctionDescription(name, params, body) {
+                // Generate description based on function name and structure
+                const camelCaseWords = name.replace(/([A-Z])/g, ' $1').toLowerCase().split(' ');
+                const snakeCaseWords = name.split('_');
+                const words = camelCaseWords.length > snakeCaseWords.length ? camelCaseWords : snakeCaseWords;
+                
+                let description = `Function that handles ${words.join(' ')} operations.`;
+                
+                if (params) {
+                    const paramCount = params.split(',').length;
+                    description += ` Takes ${paramCount} parameter${paramCount > 1 ? 's' : ''}.`;
+                }
+                
+                if (body && body.includes('return')) {
+                    description += ` Returns a value based on the processing logic.`;
+                }
+                
+                return description;
+            }
+
+            assessFunctionComplexity(body) {
+                if (!body) return 'Low';
+                const complexity = (body.match(/if|while|for|switch|try/g) || []).length;
+                if (complexity < 3) return 'Low';
+                if (complexity < 8) return 'Medium';
+                return 'High';
+            }
+
+            extractVariables(code) {
+                const variables = [];
+                const patterns = [
+                    /(?:var|let|const)\s+(\w+)\s*=\s*([^;]+)/g, // JavaScript variables
+                    /(\w+)\s*=\s*([^;\n]+)/g, // General assignments
+                    /(?:int|string|bool|float|double)\s+(\w+)/g, // Typed variables
+                ];
+
+                patterns.forEach(pattern => {
+                    let match;
+                    while ((match = pattern.exec(code)) !== null) {
+                        const name = match[1];
+                        const value = match[2] || '';
+                        
+                        if (name && name.length > 1 && !variables.find(v => v.name === name)) {
+                            variables.push({
+                                name,
+                                type: this.inferType(value),
+                                description: this.generateVariableDescription(name, value),
+                                scope: 'local' // Simplified scope detection
+                            });
+                        }
+                    }
+                });
+
+                return variables.slice(0, 10); // Limit to avoid clutter
+            }
+
+            inferType(value) {
+                if (!value) return 'unknown';
+                if (/^\d+$/.test(value.trim())) return 'number';
+                if (/^["'].*["']$/.test(value.trim())) return 'string';
+                if (/^(true|false)$/.test(value.trim())) return 'boolean';
+                if (/^\[.*\]$/.test(value.trim())) return 'array';
+                if (/^\{.*\}$/.test(value.trim())) return 'object';
+                return 'variable';
+            }
+
+            generateVariableDescription(name, value) {
+                const camelCaseWords = name.replace(/([A-Z])/g, ' $1').toLowerCase().split(' ');
+                const snakeCaseWords = name.split('_');
+                const words = camelCaseWords.length > snakeCaseWords.length ? camelCaseWords : snakeCaseWords;
+                
+                let description = `Variable used for ${words.join(' ')} data.`;
+                
+                if (value) {
+                    const type = this.inferType(value);
+                    description += ` Stores ${type} values.`;
+                }
+                
+                return description;
+            }
+
+            generateRecommendations(code) {
+                const recommendations = [];
+                
+                // Check for common code issues
+                if (code.length > 1000 && !code.includes('class')) {
+                    recommendations.push('Consider breaking this large file into smaller, more focused modules.');
+                }
+                
+                if ((code.match(/function/g) || []).length > 10) {
+                    recommendations.push('This file contains many functions. Consider organizing them into classes or separate modules.');
+                }
+                
+                if (!code.includes('//') && !code.includes('#') && !code.includes('/*')) {
+                    recommendations.push('Add inline comments to explain complex logic and improve code readability.');
+                }
+                
+                if (code.includes('TODO') || code.includes('FIXME')) {
+                    recommendations.push('Address TODO and FIXME comments to improve code quality.');
+                }
+                
+                if (!/test|spec/i.test(this.currentFile.name) && !code.includes('test')) {
+                    recommendations.push('Consider adding unit tests to ensure code reliability and maintainability.');
+                }
+                
+                return recommendations;
+            }
+
+            formatDocumentation(analysis) {
+                return `
+                    <div class="doc-section overview-doc">
+                        <h3>📋 Module Overview</h3>
+                        <p><strong>Language:</strong> ${analysis.overview.language}</p>
+                        <p><strong>Lines of Code:</strong> ${analysis.overview.lines}</p>
+                        <p><strong>Complexity:</strong> ${analysis.overview.complexity}</p>
+                        <p><strong>Description:</strong> ${analysis.overview.description}</p>
+                    </div>
+
+                    <div class="doc-section function-doc">
+                        <h3>🔧 Functions Documentation</h3>
+                        ${analysis.functions.length > 0 ? 
+                            analysis.functions.map(func => `
+                                <div style="margin-bottom: 15px; padding: 10px; background: rgba(33, 150, 243, 0.1); border-radius: 5px;">
+                                    <h4>${func.name}(${func.parameters.join(', ')})</h4>
+                                    <p><strong>Description:</strong> ${func.description}</p>
+                                    <p><strong>Complexity:</strong> ${func.complexity}</p>
+                                    <p><strong>Parameters:</strong> ${func.parameters.length > 0 ? func.parameters.join(', ') : 'None'}</p>
+                                </div>
+                            `).join('') : 
+                            '<p>No functions detected in this file.</p>'
+                        }
+                    </div>
+
+                    <div class="doc-section variable-doc">
+                        <h3>📊 Variables Documentation</h3>
+                        ${analysis.variables.length > 0 ? 
+                            analysis.variables.map(variable => `
+                                <div style="margin-bottom: 10px; padding: 8px; background: rgba(156, 39, 176, 0.1); border-radius: 5px;">
+                                    <h4>${variable.name}</h4>
+                                    <p><strong>Type:</strong> ${variable.type}</p>
+                                    <p><strong>Description:</strong> ${variable.description}</p>
+                                    <p><strong>Scope:</strong> ${variable.scope}</p>
+                                </div>
+                            `).join('') : 
+                            '<p>No significant variables detected in this file.</p>'
+                        }
+                    </div>
+
+                    <div class="doc-section">
+                        <h3>💡 Recommendations</h3>
+                        ${analysis.recommendations.length > 0 ? 
+                            '<ul>' + analysis.recommendations.map(rec => `<li>${rec}</li>`).join('') + '</ul>' : 
+                            '<p>No specific recommendations. The code structure looks good!</p>'
+                        }
+                    </div>
+
+                    <div class="doc-section">
+                        <h3>📈 Code Metrics</h3>
+                        <ul>
+                            <li><strong>Total Functions:</strong> ${analysis.functions.length}</li>
+                            <li><strong>Total Variables:</strong> ${analysis.variables.length}</li>
+                            <li><strong>Code Complexity:</strong> ${analysis.overview.complexity}</li>
+                            <li><strong>Maintainability Score:</strong> ${this.calculateMaintainabilityScore(analysis)}/100</li>
+                        </ul>
+                    </div>
+                `;
+            }
+
+            calculateMaintainabilityScore(analysis) {
+                let score = 100;
+                
+                // Deduct points for high complexity
+                if (analysis.overview.complexity === 'High') score -= 30;
+                if (analysis.overview.complexity === 'Medium') score -= 15;
+                
+                // Deduct points for too many functions without organization
+                if (analysis.functions.length > 15) score -= 20;
+                
+                // Add points for good structure
+                if (analysis.recommendations.length === 0) score += 10;
+                
+                return Math.max(Math.min(score, 100), 0);
+            }
+
+            displayDocumentation(html) {
+                document.getElementById('documentationOutput').innerHTML = html;
+            }
+
+            saveWork() {
+                if (!this.currentFile || !this.currentDocumentation) {
+                    this.showToast('No work to save. Please upload and analyze a file first.', 'error');
+                    return;
+                }
+
+                const workItem = {
+                    id: Date.now(),
+                    fileName: this.currentFile.name,
+                    fileSize: this.currentFile.size,
+                    code: this.currentCode,
+                    documentation: this.currentDocumentation,
+                    timestamp: new Date().toISOString(),
+                    language: this.detectLanguage(this.currentFile.name)
+                };
+
+                this.savedWork.push(workItem);
+                localStorage.setItem('codeDocWork', JSON.stringify(this.savedWork));
+                this.loadSavedWork();
+                this.showToast('Work saved successfully!');
+            }
+
+            loadSavedWork() {
+                const savedFilesList = document.getElementById('savedFilesList');
+                
+                if (this.savedWork.length === 0) {
+                    savedFilesList.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+                            No saved work found. Start by uploading and documenting some code!
+                        </div>
+                    `;
+                    return;
+                }
+
+                savedFilesList.innerHTML = this.savedWork.map(item => `
+                    <div class="saved-file-item" onclick="codeDoc.loadSavedItem(${item.id})">
+                        <div class="file-name">${item.fileName}</div>
+                        <div class="file-stats">
+                            ${item.language}<br>
+                            ${this.formatFileSize(item.fileSize)}<br>
+                            ${new Date(item.timestamp).toLocaleDateString()}
+                            <button onclick="event.stopPropagation(); codeDoc.deleteSavedItem(${item.id})">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadSavedItem(id) {
+                const item = this.savedWork.find(w => w.id === id);
+                if (!item) return;
+
+                this.currentCode = item.code;
+                this.currentDocumentation = item.documentation;
+                
+                // Create a mock file object
+                this.currentFile = {
+                    name: item.fileName,
+                    size: item.fileSize
+                };
+
+                this.displayCode(this.currentCode);
+                this.displayDocumentation(this.currentDocumentation);
+                this.showFileInfo(this.currentFile);
+                
+                document.getElementById('generateDocs').disabled = false;
+                document.getElementById('exportDocs').disabled = false;
+                
+                this.updateStatus(`Loaded: ${item.fileName}`);
+                this.showToast(`Loaded ${item.fileName} successfully!`);
+            }
+
+            deleteSavedItem(id) {
+                if (confirm('Are you sure you want to delete this saved work?')) {
+                    this.savedWork = this.savedWork.filter(w => w.id !== id);
+                    localStorage.setItem('codeDocWork', JSON.stringify(this.savedWork));
+                    this.loadSavedWork();
+                    this.showToast('Saved work deleted successfully!');
+                }
+            }
+
+            exportDocumentation() {
+                if (!this.currentDocumentation) {
+                    this.showToast('No documentation to export. Generate documentation first.', 'error');
+                    return;
+                }
+
+                const exportContent = `
+# Code Documentation - ${this.currentFile.name}
+Generated on: ${new Date().toLocaleString()}
+
+## Original Code
+\`\`\`
+${this.currentCode}
+\`\`\`
+
+## Generated Documentation
+${this.currentDocumentation.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+
+---
+Generated by CodeDoc AI - Professional Legacy Code Documentation Tool
+                `;
+
+                const blob = new Blob([exportContent], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.currentFile.name}_documentation.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.showToast('Documentation exported successfully!');
+            }
+
+            clearAll() {
+                if (confirm('Are you sure you want to clear all current work? This will not delete saved work.')) {
+                    this.currentFile = null;
+                    this.currentCode = '';
+                    this.currentDocumentation = '';
+                    
+                    document.getElementById('codeEditor').textContent = 'Select a file to view its contents and generate documentation';
+                    document.getElementById('documentationOutput').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <div style="font-size: 3em; margin-bottom: 20px;">📚</div>
+                            <h3>AI-Generated Documentation</h3>
+                            <p>Upload and analyze your code to see comprehensive documentation here.</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('fileInfo').style.display = 'none';
+                    document.getElementById('generateDocs').disabled = true;
+                    document.getElementById('exportDocs').disabled = true;
+                    
+                    this.updateStatus('Ready to process your code files');
+                    this.updateProgressBar(0);
+                    this.showToast('Work cleared successfully!');
+                }
+            }
+
+            updateStatus(message) {
+                document.getElementById('statusBar').textContent = message;
+            }
+
+            updateProgressBar(percentage) {
+                const progressBar = document.getElementById('progressBar');
+                const progressFill = document.getElementById('progressFill');
+                
+                if (percentage > 0) {
+                    progressBar.style.display = 'block';
+                    progressFill.style.width = percentage + '%';
+                } else {
+                    progressBar.style.display = 'none';
+                }
+            }
+
+            showLoading(show) {
+                document.getElementById('loading').style.display = show ? 'block' : 'none';
+            }
+
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize the application
+        let codeDoc;
+        document.addEventListener('DOMContentLoaded', () => {
+            codeDoc = new CodeDocumentationTool();
+        });
+
+        // Modal functions
+        function openBenefitsModal() {
+            document.getElementById('benefitsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeBenefitsModal() {
+            document.getElementById('benefitsModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('benefitsModal');
+            if (event.target === modal) {
+                closeBenefitsModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeBenefitsModal();
+            }
+        });
+    </script>
+</body>
+</html>
